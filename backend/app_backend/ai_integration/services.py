@@ -3,25 +3,16 @@ import requests
 import time
 from django.conf import settings
 from requests.exceptions import RequestException, ConnectionError
-from typing import List, Dict, Optional, Union
+from typing import Dict, Optional, Union
 
 class AIService:
     def __init__(self):
         self.gemini_api_key = settings.GEMINI_API_KEY
-        self.youtube_api_key = settings.YOUTUBE_API_KEY
         self.max_retries = 5
         self.retry_delay = 3
-        self.timeout = 30  # seconds
+        self.timeout = 30
 
     def generate_course_roadmap(self, course_name: str, difficulty: str = 'beginner', duration_weeks: int = 4) -> Dict:
-        """
-        Generate a complete course roadmap using Gemini API with retry logic
-        """
-
-        print("course_name",course_name)
-        print("difficulty",difficulty)
-        print("duration_weeks",duration_weeks)
-        
         prompt = f'''
         Create a detailed learning roadmap for a course titled "{course_name}".
         - Target difficulty: {difficulty}
@@ -45,7 +36,6 @@ class AIService:
         '''.strip()
 
         response = self._call_gemini_api(prompt)
-        print("course roadmap response",response)
         
         if response:
             try:
@@ -58,20 +48,16 @@ class AIService:
                 if self._validate_roadmap(roadmap):
                     return roadmap
             except (json.JSONDecodeError, ValueError) as e:
-                print(f"❌ Failed to parse roadmap: {str(e)}")
+                print(f"Failed to parse roadmap: {str(e)}")
 
-        return self._get_mock_roadmap(course_name, difficulty)
+        return self._get_fallback_roadmap(course_name, difficulty)
 
     def _clean_api_response(self, message: str) -> str:
-        """Clean the API response by removing markdown wrappers and fixing common issues"""
-        # Remove markdown code blocks
         if message.startswith('```json') and message.endswith('```'):
             message = message[7:-3].strip()
         elif message.startswith('```') and message.endswith('```'):
             message = message[3:-3].strip()
         
-        # Sometimes Gemini adds extra text before/after the JSON
-        # Try to find the first { or [ and last } or ]
         json_start = min(
             message.find('{') if '{' in message else float('inf'),
             message.find('[') if '[' in message else float('inf')
@@ -99,46 +85,20 @@ class AIService:
         Return ONLY a JSON array of questions, no extra text or markdown.
         '''
         response = self._call_gemini_api(prompt)
-        print("quiz response",response)
+        
         if response:
             try:
-                # Clean and parse the response
                 if isinstance(response, str):
                     response = self._clean_api_response(response)
                 quiz = json.loads(response)
-                # Validate structure
                 if self._validate_quiz(quiz):
                     return quiz
             except Exception as e:
                 print(f"Quiz parse error: {e}")
-        # Fallback to mock quiz
-        return self._get_mock_quiz(topic_title, course_name, num_questions)
-    def get_youtube_resources(self, topic: str) -> List[Dict]:
-        """Fetch relevant YouTube videos for a topic with error handling"""
-        if not self.youtube_api_key:
-            return []
-
-        try:
-            url = "https://www.googleapis.com/youtube/v3/search"
-            params = {
-                'part': 'snippet',
-                'q': f"{topic} tutorial",
-                'type': 'video',
-                'maxResults': 5,
-                'key': self.youtube_api_key
-            }
-
-            response = requests.get(url, params=params, timeout=self.timeout)
-            if response.status_code == 200:
-                return self._parse_youtube_response(response.json())
-                
-        except Exception as e:
-            print(f"❌ YouTube API error: {str(e)}")
         
-        return []
+        return self._get_fallback_quiz(topic_title, course_name, num_questions)
 
     def _call_gemini_api(self, prompt: str) -> Optional[Union[Dict, str]]:
-        """Make API call to Gemini with retry logic"""
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
         
         payload = {
@@ -167,12 +127,12 @@ class AIService:
                     result = response.json()
                     return result['candidates'][0]['content']['parts'][0]['text']
                 
-                print(f"❌ Gemini API attempt {attempt + 1} failed: {response.status_code}")
+                print(f"Gemini API attempt {attempt + 1} failed: {response.status_code}")
                 if attempt == self.max_retries - 1:
                     return None
 
             except (RequestException, ConnectionError) as e:
-                print(f"❌ Connection attempt {attempt + 1} failed: {str(e)}")
+                print(f"Connection attempt {attempt + 1} failed: {str(e)}")
                 if attempt == self.max_retries - 1:
                     return None
                 time.sleep(self.retry_delay * (attempt + 1))
@@ -180,7 +140,6 @@ class AIService:
         return None
 
     def _validate_roadmap(self, roadmap: Dict) -> bool:
-        """Validate the roadmap structure"""
         required_keys = {'description', 'topics'}
         if not all(key in roadmap for key in required_keys):
             return False
@@ -191,8 +150,7 @@ class AIService:
             for topic in roadmap['topics']
         )
 
-    def _validate_quiz(self, quiz: List) -> bool:
-        """Validate the quiz structure"""
+    def _validate_quiz(self, quiz: list) -> bool:
         if not isinstance(quiz, list):
             return False
             
@@ -205,19 +163,7 @@ class AIService:
             for item in quiz
         )
 
-    def _parse_youtube_response(self, data: Dict) -> List[Dict]:
-        """Parse YouTube API response"""
-        videos = []
-        for item in data.get('items', []):
-            videos.append({
-                'title': item['snippet']['title'],
-                'url': f"https://www.youtube.com/watch?v={item['id']['videoId']}",
-                'thumbnail': item['snippet']['thumbnails']['default']['url']
-            })
-        return videos
-
-    def _get_mock_roadmap(self, course_name: str, difficulty: str) -> Dict:
-        """Fallback mock roadmap"""
+    def _get_fallback_roadmap(self, course_name: str, difficulty: str) -> Dict:
         return {
             "description": f"Master {course_name} with our AI-curated learning path ({difficulty} level).",
             "topics": [
@@ -236,8 +182,7 @@ class AIService:
             ]
         }
 
-    def _get_mock_quiz(self, topic_title: str, course_name: str, num_questions: int) -> List[Dict]:
-        """Fallback mock quiz"""
+    def _get_fallback_quiz(self, topic_title: str, course_name: str, num_questions: int) -> list:
         base_questions = [
             {
                 "id": "1",
@@ -267,7 +212,6 @@ class AIService:
         return base_questions[:num_questions]
 
     def _generate_topic_notes(self, topic_title: str, course_name: str) -> str:
-        """Generate mock topic notes"""
         return f"""
         # {topic_title}
 

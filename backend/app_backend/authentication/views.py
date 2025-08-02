@@ -17,9 +17,6 @@ from .serializers import (
 )
 
 def update_user_learning_streak(user):
-    """
-    Update user's learning streak based on study sessions and completed topics
-    """
     from user_progress.models import StudySession
     from courses.models import TopicProgress
     
@@ -27,15 +24,12 @@ def update_user_learning_streak(user):
     today = timezone.now().date()
     current_date = today
     
-    # Check consecutive days with study sessions or completed topics
     while True:
-        # Check if user has any study session on this date
         has_study_session = StudySession.objects.filter(
             user=user,
             session_date__date=current_date
         ).exists()
         
-        # Also check if user completed any topics on this date
         has_completed_topic = TopicProgress.objects.filter(
             user=user,
             completed=True,
@@ -48,7 +42,6 @@ def update_user_learning_streak(user):
         else:
             break
     
-    # Update the user's learning streak in their profile
     profile = user.profile
     if profile.learning_streak != learning_streak:
         profile.learning_streak = learning_streak
@@ -105,9 +98,6 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def update_profile(request):
-    """
-    Update user profile (username, email, avatar)
-    """
     serializer = UserProfileUpdateSerializer(
         request.user, 
         data=request.data, 
@@ -116,7 +106,15 @@ def update_profile(request):
     )
     
     if serializer.is_valid():
+        if 'avatar' in request.FILES:
+            if request.user.avatar and request.user.avatar.name != 'avatars/default_avatar.png':
+                request.user.delete_avatar()
+            
+            request.user.avatar = request.FILES['avatar']
+            request.user.save()
+        
         serializer.save()
+        
         return Response({
             'message': 'Profile updated successfully',
             'user': UserSerializer(request.user).data
@@ -124,12 +122,23 @@ def update_profile(request):
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_avatar(request):
+    try:
+        request.user.delete_avatar()
+        return Response({
+            'message': 'Avatar deleted successfully',
+            'user': UserSerializer(request.user).data
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'error': 'Failed to delete avatar'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_password(request):
-    """
-    Change user password with old password verification
-    """
     serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
     
     if serializer.is_valid():
@@ -149,7 +158,6 @@ def user_stats(request):
     user = request.user
     profile = user.profile
     
-    # Calculate user statistics
     from courses.models import UserCourse, QuizAttempt, TopicProgress
     from user_progress.models import StudySession
     from django.utils import timezone
@@ -159,7 +167,6 @@ def user_stats(request):
     completed_courses = UserCourse.objects.filter(user=user, completed=True).count()
     total_quizzes = QuizAttempt.objects.filter(user=user).count()
     
-    # Calculate total study time from completed topics
     completed_topics = TopicProgress.objects.filter(
         user=user, 
         completed=True
@@ -167,13 +174,10 @@ def user_stats(request):
     
     total_study_time = 0
     
-    # Calculate study time based on completed topics only
     for topic_progress in completed_topics:
         topic = topic_progress.topic
-        # Parse estimated time (e.g., "2 hours", "30 minutes")
         estimated_time = topic.estimated_time
         if estimated_time:
-            # Extract hours from estimated_time
             hours = 0
             
             if 'hour' in estimated_time.lower():
@@ -184,15 +188,12 @@ def user_stats(request):
             elif 'minute' in estimated_time.lower():
                 try:
                     minutes = int(estimated_time.split()[0])
-                    # Convert minutes to hours (round up if 30+ minutes)
                     hours = round(minutes / 60)
                 except (ValueError, IndexError):
                     hours = 1
             
-            # Add hours directly (no rounding needed since we're already in hours)
-            total_study_time += hours * 60  # Convert to minutes for consistency
+            total_study_time += hours * 60
     
-    # Calculate learning streak based on study sessions and completed topics
     learning_streak = update_user_learning_streak(user)
     
     return Response({
@@ -200,5 +201,5 @@ def user_stats(request):
         'completed_courses': completed_courses,
         'total_quizzes': total_quizzes,
         'learning_streak': learning_streak,
-        'total_study_time': total_study_time,  # in minutes
+        'total_study_time': total_study_time,
     })

@@ -16,7 +16,6 @@ import Layout from './components/Layout';
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading, authChecked } = useAuth();
   
-  // Show loading while checking authentication
   if (loading || !authChecked) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -28,7 +27,6 @@ function ProtectedRoute({ children }) {
     );
   }
   
-  // Redirect to login if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -39,7 +37,6 @@ function ProtectedRoute({ children }) {
 function PublicRoute({ children }) {
   const { isAuthenticated, loading, authChecked } = useAuth();
   
-  // Show loading while checking authentication
   if (loading || !authChecked) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -51,7 +48,6 @@ function PublicRoute({ children }) {
     );
   }
   
-  // Redirect to home if already authenticated
   if (isAuthenticated) {
     return <Navigate to="/home" replace />;
   }
@@ -62,7 +58,6 @@ function PublicRoute({ children }) {
 function AuthenticatedRedirect({ children }) {
   const { isAuthenticated, loading, authChecked } = useAuth();
   
-  // Show loading while checking authentication
   if (loading || !authChecked) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -74,7 +69,6 @@ function AuthenticatedRedirect({ children }) {
     );
   }
   
-  // Redirect to home if authenticated
   if (isAuthenticated) {
     return <Navigate to="/home" replace />;
   }
@@ -85,7 +79,6 @@ function AuthenticatedRedirect({ children }) {
 function FallbackRoute() {
   const { isAuthenticated, loading, authChecked } = useAuth();
   
-  // Show loading while checking authentication
   if (loading || !authChecked) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -97,7 +90,6 @@ function FallbackRoute() {
     );
   }
   
-  // Redirect authenticated users to home, others to landing
   if (isAuthenticated) {
     return <Navigate to="/home" replace />;
   } else {
@@ -106,7 +98,6 @@ function FallbackRoute() {
 }
 
 function App() {
-
   return (
     <>
       <AuthProvider>
@@ -170,7 +161,6 @@ function App() {
                   </Layout>
                 </ProtectedRoute>
               } />
-              {/* Fallback route - redirect to appropriate page */}
               <Route path="*" element={<FallbackRoute />} />
             </Routes>
           </div>

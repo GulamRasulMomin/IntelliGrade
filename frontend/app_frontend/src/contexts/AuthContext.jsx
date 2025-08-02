@@ -9,20 +9,16 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
 
-
   useEffect(() => {
     const checkAuthStatus = async () => {
       const token = localStorage.getItem('authToken');
       const userData = localStorage.getItem('userData');
-      console.log('AuthProvider useEffect', { token, userData });
       
       if (token && userData) {
         try {
-          // Verify token is still valid by making a request to the backend
           const response = await apiService.getUserProfile();
           const parsedUserData = JSON.parse(userData);
           
-          // Ensure avatar URL is properly formatted
           if (parsedUserData.avatar && !parsedUserData.avatar.startsWith('http')) {
             parsedUserData.avatar = `http://localhost:8000${parsedUserData.avatar}`;
           }
@@ -30,13 +26,11 @@ export function AuthProvider({ children }) {
           setUser(parsedUserData);
           setIsAuthenticated(true);
           
-          // Redirect to home if user is on landing page
           if (window.location.pathname === '/') {
             window.location.href = '/home';
           }
         } catch (error) {
           console.error('Token validation failed:', error);
-          // Token is invalid, clear storage
           localStorage.removeItem('authToken');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('userData');
@@ -55,7 +49,6 @@ export function AuthProvider({ children }) {
     checkAuthStatus();
   }, []);
 
-
   const login = async (username, password) => {
     try {
       const response = await apiService.login(username, password);
@@ -72,10 +65,8 @@ export function AuthProvider({ children }) {
         localStorage.setItem('authToken', response.access);
         localStorage.setItem('refreshToken', response.refresh);
         localStorage.setItem('userData', JSON.stringify(userData));
-        console.log('userData in login', userData);
         setUser(userData);
         setIsAuthenticated(true);
-        // Redirect to home page after successful login
         window.location.href = '/home';
         return true;
       }
@@ -102,10 +93,8 @@ export function AuthProvider({ children }) {
         localStorage.setItem('authToken', response.access);
         localStorage.setItem('refreshToken', response.refresh);
         localStorage.setItem('userData', JSON.stringify(userData));
-        console.log('userData in signup', userData);
         setUser(userData);
         setIsAuthenticated(true);
-        // Redirect to home page after successful signup
         window.location.href = '/home';
         return { success: true };
       }
@@ -113,12 +102,10 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Signup error:', error);
       
-      // Handle field-specific errors
       if (error.fieldErrors) {
         const fieldErrors = error.fieldErrors;
         let errorMessage = '';
         
-        // Check for username error first (most common)
         if (fieldErrors.username) {
           if (Array.isArray(fieldErrors.username)) {
             errorMessage = fieldErrors.username[0];
@@ -126,7 +113,6 @@ export function AuthProvider({ children }) {
             errorMessage = fieldErrors.username;
           }
         }
-        // Check for email error
         else if (fieldErrors.email) {
           if (Array.isArray(fieldErrors.email)) {
             errorMessage = fieldErrors.email[0];
@@ -134,7 +120,6 @@ export function AuthProvider({ children }) {
             errorMessage = fieldErrors.email;
           }
         }
-        // Check for password error
         else if (fieldErrors.password) {
           if (Array.isArray(fieldErrors.password)) {
             errorMessage = fieldErrors.password[0];
@@ -142,7 +127,6 @@ export function AuthProvider({ children }) {
             errorMessage = fieldErrors.password;
           }
         }
-        // Check for non-field errors
         else if (fieldErrors.non_field_errors) {
           if (Array.isArray(fieldErrors.non_field_errors)) {
             errorMessage = fieldErrors.non_field_errors[0];
@@ -150,7 +134,6 @@ export function AuthProvider({ children }) {
             errorMessage = fieldErrors.non_field_errors;
           }
         }
-        // Fallback to general error message
         else {
           errorMessage = error.message || 'Registration failed';
         }
@@ -209,12 +192,10 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Profile update error:', error);
       
-      // Handle field-specific errors
       if (error.fieldErrors) {
         const fieldErrors = error.fieldErrors;
         let errorMessage = '';
         
-        // Check for username error
         if (fieldErrors.username) {
           if (Array.isArray(fieldErrors.username)) {
             errorMessage = fieldErrors.username[0];
@@ -222,7 +203,6 @@ export function AuthProvider({ children }) {
             errorMessage = fieldErrors.username;
           }
         }
-        // Check for email error
         else if (fieldErrors.email) {
           if (Array.isArray(fieldErrors.email)) {
             errorMessage = fieldErrors.email[0];
@@ -230,7 +210,6 @@ export function AuthProvider({ children }) {
             errorMessage = fieldErrors.email;
           }
         }
-        // Check for avatar error
         else if (fieldErrors.avatar) {
           if (Array.isArray(fieldErrors.avatar)) {
             errorMessage = fieldErrors.avatar[0];
@@ -238,7 +217,6 @@ export function AuthProvider({ children }) {
             errorMessage = fieldErrors.avatar;
           }
         }
-        // Check for non-field errors
         else if (fieldErrors.non_field_errors) {
           if (Array.isArray(fieldErrors.non_field_errors)) {
             errorMessage = fieldErrors.non_field_errors[0];
@@ -246,7 +224,6 @@ export function AuthProvider({ children }) {
             errorMessage = fieldErrors.non_field_errors;
           }
         }
-        // Fallback to general error message
         else {
           errorMessage = error.message || 'Profile update failed';
         }
@@ -265,12 +242,10 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Password change error:', error);
       
-      // Handle field-specific errors
       if (error.fieldErrors) {
         const fieldErrors = error.fieldErrors;
         let errorMessage = '';
         
-        // Check for old password error
         if (fieldErrors.old_password) {
           if (Array.isArray(fieldErrors.old_password)) {
             errorMessage = fieldErrors.old_password[0];
@@ -278,7 +253,6 @@ export function AuthProvider({ children }) {
             errorMessage = fieldErrors.old_password;
           }
         }
-        // Check for new password error
         else if (fieldErrors.new_password) {
           if (Array.isArray(fieldErrors.new_password)) {
             errorMessage = fieldErrors.new_password[0];
@@ -286,7 +260,6 @@ export function AuthProvider({ children }) {
             errorMessage = fieldErrors.new_password;
           }
         }
-        // Check for confirm password error
         else if (fieldErrors.confirm_password) {
           if (Array.isArray(fieldErrors.confirm_password)) {
             errorMessage = fieldErrors.confirm_password[0];
@@ -294,7 +267,6 @@ export function AuthProvider({ children }) {
             errorMessage = fieldErrors.confirm_password;
           }
         }
-        // Check for non-field errors
         else if (fieldErrors.non_field_errors) {
           if (Array.isArray(fieldErrors.non_field_errors)) {
             errorMessage = fieldErrors.non_field_errors[0];
@@ -302,7 +274,6 @@ export function AuthProvider({ children }) {
             errorMessage = fieldErrors.non_field_errors;
           }
         }
-        // Fallback to general error message
         else {
           errorMessage = error.message || 'Password change failed';
         }
@@ -315,23 +286,22 @@ export function AuthProvider({ children }) {
   };
 
   return (
-  <AuthContext.Provider value={{
-    user,
-    isAuthenticated,
-    loading,
-    authChecked,
-    login,
-    signup,
-    logout,
-    refreshToken,
-    checkAuth,
-    updateProfile,
-    changePassword
-  }}>
-    {loading ? <div className="text-white p-4">Loading...</div> : children}
-  </AuthContext.Provider>
-);
-
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated,
+      loading,
+      authChecked,
+      login,
+      signup,
+      logout,
+      refreshToken,
+      checkAuth,
+      updateProfile,
+      changePassword
+    }}>
+      {loading ? <div className="text-white p-4">Loading...</div> : children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

@@ -11,7 +11,6 @@ from .serializers import (
     CourseGenerationSerializer
 )
 from ai_integration.services import AIService
-import json
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -22,10 +21,8 @@ def generate_course(request):
         difficulty = serializer.validated_data['difficulty']
         duration_weeks = serializer.validated_data['duration_weeks']
         
-        # Check if course already exists
         existing_course = Course.objects.filter(title__iexact=course_name).first()
         if existing_course:
-            # Enroll user if not already enrolled
             user_course, created = UserCourse.objects.get_or_create(
                 user=request.user,
                 course=existing_course
@@ -36,16 +33,13 @@ def generate_course(request):
             })
         
         try:
-            # Generate course using AI service
             ai_service = AIService()
             course_data = ai_service.generate_course_roadmap(course_name, difficulty, duration_weeks)
             
-            # Check if we got mock data (fallback)
-            is_mock_data = False
+            is_fallback_data = False
             if course_data.get('description', '').startswith(f'Master {course_name} with our AI-curated learning path'):
-                is_mock_data = True
+                is_fallback_data = True
             
-            # Create course
             course = Course.objects.create(
                 title=course_name,
                 description=course_data.get('description', f'Master {course_name} with our AI-curated learning path.'),
@@ -53,7 +47,6 @@ def generate_course(request):
                 estimated_duration=f"{duration_weeks} weeks"
             )
             
-            # Create topics
             for i, topic_data in enumerate(course_data.get('topics', [])):
                 topic = Topic.objects.create(
                     course=course,
@@ -64,18 +57,15 @@ def generate_course(request):
                     estimated_time=topic_data['estimated_time']
                 )
                 
-                # Generate quiz for topic
                 quiz_questions = ai_service.generate_quiz(topic_data['title'], course_name)
                 Quiz.objects.create(
                     topic=topic,
                     questions=quiz_questions
                 )
             
-            # Enroll user in course
             UserCourse.objects.create(user=request.user, course=course)
             
-            # Return appropriate message based on whether mock data was used
-            if is_mock_data:
+            if is_fallback_data:
                 return Response({
                     'course': CourseSerializer(course).data,
                     'message': 'Course generated with fallback content due to AI service issues. You can still learn effectively!',
@@ -88,7 +78,7 @@ def generate_course(request):
                 }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
-            print(f"❌ Course generation error: {str(e)}")
+            print(f"Course generation error: {str(e)}")
             return Response({
                 'error': 'Error generating course. Please try again later.',
                 'details': 'The AI service is currently experiencing issues. Please try again in a few minutes.'
@@ -101,13 +91,11 @@ def generate_course(request):
 def get_course(request, course_id):
     course = get_object_or_404(Course, id=course_id)
     
-    # Get or create user course enrollment
     user_course, created = UserCourse.objects.get_or_create(
         user=request.user,
         course=course
     )
     
-    # Get topic progress
     topics_with_progress = []
     for topic in course.topics.all():
         progress, _ = TopicProgress.objects.get_or_create(
@@ -129,7 +117,6 @@ def get_course(request, course_id):
 def get_topic_notes(request, topic_id):
     topic = get_object_or_404(Topic, id=topic_id)
     
-    # Mark notes as viewed
     progress, _ = TopicProgress.objects.get_or_create(
         user=request.user,
         topic=topic
@@ -145,7 +132,7 @@ def get_topic_quiz(request, topic_id):
     topic = get_object_or_404(Topic, id=topic_id)
     quiz = get_object_or_404(Quiz, topic=topic)
     quiz_data = QuizSerializer(quiz).data
-    # Detect fallback/mock quiz by checking for generic question pattern
+    
     is_fallback = False
     questions = quiz_data.get('questions', [])
     if questions and isinstance(questions, list):
@@ -168,13 +155,11 @@ def submit_quiz(request, topic_id):
     user_answers = request.data.get('answers', [])
     questions = quiz.questions
     
-    # Calculate score
     score = 0
     for i, question in enumerate(questions):
         if i < len(user_answers) and user_answers[i] == question.get('correct_answer'):
             score += 1
     
-    # Save quiz attempt
     quiz_attempt = QuizAttempt.objects.create(
         user=request.user,
         quiz=quiz,
@@ -183,18 +168,16 @@ def submit_quiz(request, topic_id):
         answers=user_answers
     )
     
-    # Update topic progress
     progress, _ = TopicProgress.objects.get_or_create(
         user=request.user,
         topic=topic
     )
     progress.quiz_completed = True
-    if score >= len(questions) * 0.7:  # 70% passing score
+    if score >= len(questions) * 0.7:
         progress.completed = True
         progress.completed_at = timezone.now()
     progress.save()
     
-    # Update course progress
     user_course = UserCourse.objects.get(user=request.user, course=topic.course)
     completed_topics = TopicProgress.objects.filter(
         user=request.user,
@@ -209,7 +192,6 @@ def submit_quiz(request, topic_id):
         user_course.completed_at = timezone.now()
     user_course.save()
     
-    # Update learning streak when user completes a topic
     from authentication.views import update_user_learning_streak
     update_user_learning_streak(request.user)
     
@@ -223,28 +205,21 @@ def submit_quiz(request, topic_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_courses(request):
-    # Get only courses that the user has enrolled in
     user_courses = UserCourse.objects.filter(
         user=request.user
     ).select_related('course').prefetch_related('course__topics').order_by('-enrolled_at')
     
-    # Calculate study time for each course
-    
     course_data = []
     for user_course in user_courses:
         course = user_course.course
-        
-        # Calculate study time for this course
         course_study_time = 0
         
-        # Get completed topics for this course
         completed_topics = TopicProgress.objects.filter(
             user=request.user,
             topic__course=course,
             completed=True
         ).select_related('topic')
         
-        # Calculate time from completed topics only
         for topic_progress in completed_topics:
             topic = topic_progress.topic
             estimated_time = topic.estimated_time
@@ -259,18 +234,14 @@ def my_courses(request):
                 elif 'minute' in estimated_time.lower():
                     try:
                         minutes = int(estimated_time.split()[0])
-                        # Convert minutes to hours (round up if 30+ minutes)
                         hours = round(minutes / 60)
                     except (ValueError, IndexError):
                         hours = 1
                 
-                # Add hours directly
-                course_study_time += hours * 60  # Convert to minutes for consistency
+                course_study_time += hours * 60
         
-        # Serialize course data with study time
         course_serialized = UserCourseSerializer(user_course).data
         course_serialized['study_time_minutes'] = course_study_time
-        
         course_data.append(course_serialized)
     
     return Response(course_data)
@@ -278,6 +249,5 @@ def my_courses(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def featured_courses(request):
-    # Return some featured/popular courses
     featured = Course.objects.all()[:4]
     return Response(CourseSerializer(featured, many=True).data)

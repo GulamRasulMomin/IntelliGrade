@@ -43,10 +43,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',    
-    # Local apps
     'authentication',
     'courses',
-    'ai_integration',
     'user_progress',
 ]
 
@@ -170,7 +168,6 @@ CORS_ALLOW_CREDENTIALS = True
 
 # AI Integration Settings
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
-YOUTUBE_API_KEY = config('YOUTUBE_API_KEY', default='')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
