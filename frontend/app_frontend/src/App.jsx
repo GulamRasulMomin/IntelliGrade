@@ -14,8 +14,95 @@ import QuizPage from './pages/QuizPage';
 import Layout from './components/Layout';
 
 function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  const { isAuthenticated, loading, authChecked } = useAuth();
+  
+  // Show loading while checking authentication
+  if (loading || !authChecked) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+function PublicRoute({ children }) {
+  const { isAuthenticated, loading, authChecked } = useAuth();
+  
+  // Show loading while checking authentication
+  if (loading || !authChecked) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Redirect to home if already authenticated
+  if (isAuthenticated) {
+    return <Navigate to="/home" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+function AuthenticatedRedirect({ children }) {
+  const { isAuthenticated, loading, authChecked } = useAuth();
+  
+  // Show loading while checking authentication
+  if (loading || !authChecked) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Redirect to home if authenticated
+  if (isAuthenticated) {
+    return <Navigate to="/home" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+function FallbackRoute() {
+  const { isAuthenticated, loading, authChecked } = useAuth();
+  
+  // Show loading while checking authentication
+  if (loading || !authChecked) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Redirect authenticated users to home, others to landing
+  if (isAuthenticated) {
+    return <Navigate to="/home" replace />;
+  } else {
+    return <Navigate to="/" replace />;
+  }
 }
 
 function App() {
@@ -26,9 +113,21 @@ function App() {
         <Router>
           <div className="min-h-screen bg-gray-900 text-white">
             <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/" element={
+                <AuthenticatedRedirect>
+                  <LandingPage />
+                </AuthenticatedRedirect>
+              } />
+              <Route path="/login" element={
+                <PublicRoute>
+                  <LoginPage />
+                </PublicRoute>
+              } />
+              <Route path="/signup" element={
+                <PublicRoute>
+                  <SignupPage />
+                </PublicRoute>
+              } />
               <Route path="/home" element={
                 <ProtectedRoute>
                   <Layout>
@@ -71,6 +170,8 @@ function App() {
                   </Layout>
                 </ProtectedRoute>
               } />
+              {/* Fallback route - redirect to appropriate page */}
+              <Route path="*" element={<FallbackRoute />} />
             </Routes>
           </div>
         </Router>

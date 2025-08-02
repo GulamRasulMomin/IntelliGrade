@@ -7,30 +7,65 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
 
   useEffect(() => {
-  const token = localStorage.getItem('authToken');
-  const userData = localStorage.getItem('userData');
-  console.log('AuthProvider useEffect', { token, userData });
-  if (token && userData) {
-    setUser(JSON.parse(userData));
-    setIsAuthenticated(true);
-  }
-  setLoading(false);
+    const checkAuthStatus = async () => {
+      const token = localStorage.getItem('authToken');
+      const userData = localStorage.getItem('userData');
+      console.log('AuthProvider useEffect', { token, userData });
+      
+      if (token && userData) {
+        try {
+          // Verify token is still valid by making a request to the backend
+          const response = await apiService.getUserProfile();
+          const parsedUserData = JSON.parse(userData);
+          
+          // Ensure avatar URL is properly formatted
+          if (parsedUserData.avatar && !parsedUserData.avatar.startsWith('http')) {
+            parsedUserData.avatar = `http://localhost:8000${parsedUserData.avatar}`;
+          }
+          
+          setUser(parsedUserData);
+          setIsAuthenticated(true);
+          
+          // Redirect to home if user is on landing page
+          if (window.location.pathname === '/') {
+            window.location.href = '/home';
+          }
+        } catch (error) {
+          console.error('Token validation failed:', error);
+          // Token is invalid, clear storage
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('userData');
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+      
+      setLoading(false);
+      setAuthChecked(true);
+    };
+
+    checkAuthStatus();
   }, []);
 
 
-  const login = async (email, password) => {
+  const login = async (username, password) => {
     try {
-      const response = await apiService.login(email, password);
+      const response = await apiService.login(username, password);
 
       if (response.access && response.user) {
         const userData = {
           id: response.user.id.toString(),
-          name: response.user.username,
+          username: response.user.username,
           email: response.user.email,
-          avatar: response.user.profile?.avatar || undefined,
+          avatar: response.user.avatar ? `http://localhost:8000${response.user.avatar}` : undefined,
           joinDate: response.user.date_joined
         };
 
@@ -40,6 +75,8 @@ export function AuthProvider({ children }) {
         console.log('userData in login', userData);
         setUser(userData);
         setIsAuthenticated(true);
+        // Redirect to home page after successful login
+        window.location.href = '/home';
         return true;
       }
       return false;
@@ -49,16 +86,16 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const signup = async (name, email, password) => {
+  const signup = async (username, email, password) => {
     try {
-      const response = await apiService.register({ name, email, password });
+      const response = await apiService.register({ username, email, password });
 
       if (response.access && response.user) {
         const userData = {
           id: response.user.id.toString(),
-          name: response.user.username,
+          username: response.user.username,
           email: response.user.email,
-          avatar: response.user.profile?.avatar || undefined,
+          avatar: response.user.avatar ? `http://localhost:8000${response.user.avatar}` : undefined,
           joinDate: response.user.date_joined
         };
 
@@ -68,12 +105,60 @@ export function AuthProvider({ children }) {
         console.log('userData in signup', userData);
         setUser(userData);
         setIsAuthenticated(true);
-        return true;
+        // Redirect to home page after successful signup
+        window.location.href = '/home';
+        return { success: true };
       }
-      return false;
+      return { success: false, error: 'Registration failed' };
     } catch (error) {
       console.error('Signup error:', error);
-      return false;
+      
+      // Handle field-specific errors
+      if (error.fieldErrors) {
+        const fieldErrors = error.fieldErrors;
+        let errorMessage = '';
+        
+        // Check for username error first (most common)
+        if (fieldErrors.username) {
+          if (Array.isArray(fieldErrors.username)) {
+            errorMessage = fieldErrors.username[0];
+          } else {
+            errorMessage = fieldErrors.username;
+          }
+        }
+        // Check for email error
+        else if (fieldErrors.email) {
+          if (Array.isArray(fieldErrors.email)) {
+            errorMessage = fieldErrors.email[0];
+          } else {
+            errorMessage = fieldErrors.email;
+          }
+        }
+        // Check for password error
+        else if (fieldErrors.password) {
+          if (Array.isArray(fieldErrors.password)) {
+            errorMessage = fieldErrors.password[0];
+          } else {
+            errorMessage = fieldErrors.password;
+          }
+        }
+        // Check for non-field errors
+        else if (fieldErrors.non_field_errors) {
+          if (Array.isArray(fieldErrors.non_field_errors)) {
+            errorMessage = fieldErrors.non_field_errors[0];
+          } else {
+            errorMessage = fieldErrors.non_field_errors;
+          }
+        }
+        // Fallback to general error message
+        else {
+          errorMessage = error.message || 'Registration failed';
+        }
+        
+        return { success: false, error: errorMessage };
+      }
+      
+      return { success: false, error: error.message || 'Registration failed' };
     }
   };
 
@@ -84,13 +169,148 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('userData');
     setUser(null);
     setIsAuthenticated(false);
+    setAuthChecked(true);
   };
 
-  const updateProfile = (data) => {
-    if (user) {
-      const updatedUser = { ...user, ...data };
-      setUser(updatedUser);
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
+  const refreshToken = async () => {
+    try {
+      const response = await apiService.refreshToken();
+      localStorage.setItem('authToken', response.access);
+      return true;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      logout();
+      return false;
+    }
+  };
+
+  const checkAuth = () => {
+    return isAuthenticated && user !== null;
+  };
+
+  const updateProfile = async (data) => {
+    try {
+      const response = await apiService.updateProfile(data);
+      
+      if (response.user) {
+        const userData = {
+          id: response.user.id.toString(),
+          username: response.user.username,
+          email: response.user.email,
+          avatar: response.user.avatar ? `http://localhost:8000${response.user.avatar}` : undefined,
+          joinDate: response.user.date_joined
+        };
+
+        setUser(userData);
+        localStorage.setItem('userData', JSON.stringify(userData));
+        return { success: true, message: 'Profile updated successfully' };
+      }
+      return { success: false, error: 'Profile update failed' };
+    } catch (error) {
+      console.error('Profile update error:', error);
+      
+      // Handle field-specific errors
+      if (error.fieldErrors) {
+        const fieldErrors = error.fieldErrors;
+        let errorMessage = '';
+        
+        // Check for username error
+        if (fieldErrors.username) {
+          if (Array.isArray(fieldErrors.username)) {
+            errorMessage = fieldErrors.username[0];
+          } else {
+            errorMessage = fieldErrors.username;
+          }
+        }
+        // Check for email error
+        else if (fieldErrors.email) {
+          if (Array.isArray(fieldErrors.email)) {
+            errorMessage = fieldErrors.email[0];
+          } else {
+            errorMessage = fieldErrors.email;
+          }
+        }
+        // Check for avatar error
+        else if (fieldErrors.avatar) {
+          if (Array.isArray(fieldErrors.avatar)) {
+            errorMessage = fieldErrors.avatar[0];
+          } else {
+            errorMessage = fieldErrors.avatar;
+          }
+        }
+        // Check for non-field errors
+        else if (fieldErrors.non_field_errors) {
+          if (Array.isArray(fieldErrors.non_field_errors)) {
+            errorMessage = fieldErrors.non_field_errors[0];
+          } else {
+            errorMessage = fieldErrors.non_field_errors;
+          }
+        }
+        // Fallback to general error message
+        else {
+          errorMessage = error.message || 'Profile update failed';
+        }
+        
+        return { success: false, error: errorMessage };
+      }
+      
+      return { success: false, error: error.message || 'Profile update failed' };
+    }
+  };
+
+  const changePassword = async (oldPassword, newPassword, confirmPassword) => {
+    try {
+      const response = await apiService.changePassword(oldPassword, newPassword, confirmPassword);
+      return { success: true, message: 'Password changed successfully' };
+    } catch (error) {
+      console.error('Password change error:', error);
+      
+      // Handle field-specific errors
+      if (error.fieldErrors) {
+        const fieldErrors = error.fieldErrors;
+        let errorMessage = '';
+        
+        // Check for old password error
+        if (fieldErrors.old_password) {
+          if (Array.isArray(fieldErrors.old_password)) {
+            errorMessage = fieldErrors.old_password[0];
+          } else {
+            errorMessage = fieldErrors.old_password;
+          }
+        }
+        // Check for new password error
+        else if (fieldErrors.new_password) {
+          if (Array.isArray(fieldErrors.new_password)) {
+            errorMessage = fieldErrors.new_password[0];
+          } else {
+            errorMessage = fieldErrors.new_password;
+          }
+        }
+        // Check for confirm password error
+        else if (fieldErrors.confirm_password) {
+          if (Array.isArray(fieldErrors.confirm_password)) {
+            errorMessage = fieldErrors.confirm_password[0];
+          } else {
+            errorMessage = fieldErrors.confirm_password;
+          }
+        }
+        // Check for non-field errors
+        else if (fieldErrors.non_field_errors) {
+          if (Array.isArray(fieldErrors.non_field_errors)) {
+            errorMessage = fieldErrors.non_field_errors[0];
+          } else {
+            errorMessage = fieldErrors.non_field_errors;
+          }
+        }
+        // Fallback to general error message
+        else {
+          errorMessage = error.message || 'Password change failed';
+        }
+        
+        return { success: false, error: errorMessage };
+      }
+      
+      return { success: false, error: error.message || 'Password change failed' };
     }
   };
 
@@ -98,10 +318,15 @@ export function AuthProvider({ children }) {
   <AuthContext.Provider value={{
     user,
     isAuthenticated,
+    loading,
+    authChecked,
     login,
     signup,
     logout,
-    updateProfile
+    refreshToken,
+    checkAuth,
+    updateProfile,
+    changePassword
   }}>
     {loading ? <div className="text-white p-4">Loading...</div> : children}
   </AuthContext.Provider>

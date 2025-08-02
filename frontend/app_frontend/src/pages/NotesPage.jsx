@@ -146,7 +146,7 @@ After mastering this topic, you'll be ready to:
               className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               <Download className="w-4 h-4 mr-2" />
-              Download PDF
+              Download Notes
             </button>
           </div>
           

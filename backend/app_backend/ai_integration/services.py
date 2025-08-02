@@ -17,6 +17,11 @@ class AIService:
         """
         Generate a complete course roadmap using Gemini API with retry logic
         """
+
+        print("course_name",course_name)
+        print("difficulty",difficulty)
+        print("duration_weeks",duration_weeks)
+        
         prompt = f'''
         Create a detailed learning roadmap for a course titled "{course_name}".
         - Target difficulty: {difficulty}

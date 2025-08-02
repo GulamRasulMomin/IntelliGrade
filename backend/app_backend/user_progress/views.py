@@ -5,25 +5,8 @@ from rest_framework.response import Response
 from django.db.models import Sum, Count
 from django.utils import timezone
 from datetime import timedelta
-from .models import LearningGoal, StudySession, Achievement
-from .serializers import LearningGoalSerializer, StudySessionSerializer, AchievementSerializer
-
-class LearningGoalListCreateView(generics.ListCreateAPIView):
-    serializer_class = LearningGoalSerializer
-    permission_classes = [IsAuthenticated]
-    
-    def get_queryset(self):
-        return LearningGoal.objects.filter(user=self.request.user)
-    
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-class LearningGoalDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = LearningGoalSerializer
-    permission_classes = [IsAuthenticated]
-    
-    def get_queryset(self):
-        return LearningGoal.objects.filter(user=self.request.user)
+from .models import StudySession, Achievement
+from .serializers import StudySessionSerializer, AchievementSerializer
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -112,6 +95,10 @@ def log_study_session(request):
             duration_minutes=duration_minutes
         )
         
+        # Update learning streak when study session is logged
+        from authentication.views import update_user_learning_streak
+        update_user_learning_streak(request.user)
+        
         # Check for achievements
         _check_achievements(request.user)
         
@@ -125,6 +112,7 @@ def log_study_session(request):
 def _check_achievements(user):
     """Check and award achievements to user"""
     from courses.models import UserCourse, QuizAttempt
+    from authentication.views import update_user_learning_streak
     
     # First course completion
     if UserCourse.objects.filter(user=user, completed=True).count() == 1:
@@ -140,25 +128,17 @@ def _check_achievements(user):
             achievement_type='quiz_master'
         )
     
-    # Study streaks
-    today = timezone.now().date()
-    streak = 0
-    current_date = today
+    # Get current learning streak
+    learning_streak = update_user_learning_streak(user)
     
-    while StudySession.objects.filter(
-        user=user,
-        session_date__date=current_date
-    ).exists():
-        streak += 1
-        current_date -= timedelta(days=1)
-    
-    if streak >= 7:
+    # Study streaks based on learning streak
+    if learning_streak >= 7:
         Achievement.objects.get_or_create(
             user=user,
             achievement_type='streak_7'
         )
     
-    if streak >= 30:
+    if learning_streak >= 30:
         Achievement.objects.get_or_create(
             user=user,
             achievement_type='streak_30'

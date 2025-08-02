@@ -3,17 +3,6 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-class LearningGoal(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=200)
-    description = models.TextField()
-    target_date = models.DateField()
-    completed = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return f"{self.user.email} - {self.title}"
-
 class StudySession(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     course = models.ForeignKey('courses.Course', on_delete=models.CASCADE)
@@ -22,7 +11,7 @@ class StudySession(models.Model):
     session_date = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"{self.user.email} - {self.course.title} - {self.duration_minutes}min"
+        return f"{self.user.username} - {self.course.title} - {self.duration_minutes}min"
 
 class Achievement(models.Model):
     ACHIEVEMENT_TYPES = [
@@ -41,4 +30,4 @@ class Achievement(models.Model):
         unique_together = ['user', 'achievement_type']
     
     def __str__(self):
-        return f"{self.user.email} - {self.get_achievement_type_display()}"
+        return f"{self.user.username} - {self.get_achievement_type_display()}"

@@ -40,6 +40,11 @@ def generate_course(request):
             ai_service = AIService()
             course_data = ai_service.generate_course_roadmap(course_name, difficulty, duration_weeks)
             
+            # Check if we got mock data (fallback)
+            is_mock_data = False
+            if course_data.get('description', '').startswith(f'Master {course_name} with our AI-curated learning path'):
+                is_mock_data = True
+            
             # Create course
             course = Course.objects.create(
                 title=course_name,
@@ -69,14 +74,24 @@ def generate_course(request):
             # Enroll user in course
             UserCourse.objects.create(user=request.user, course=course)
             
-            return Response({
-                'course': CourseSerializer(course).data,
-                'message': 'Course generated successfully!'
-            }, status=status.HTTP_201_CREATED)
+            # Return appropriate message based on whether mock data was used
+            if is_mock_data:
+                return Response({
+                    'course': CourseSerializer(course).data,
+                    'message': 'Course generated with fallback content due to AI service issues. You can still learn effectively!',
+                    'warning': 'AI service temporarily unavailable. Using curated fallback content.'
+                }, status=status.HTTP_201_CREATED)
+            else:
+                return Response({
+                    'course': CourseSerializer(course).data,
+                    'message': 'Course generated successfully!'
+                }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
+            print(f"❌ Course generation error: {str(e)}")
             return Response({
-                'error': f'Failed to generate course: {str(e)}'
+                'error': 'Error generating course. Please try again later.',
+                'details': 'The AI service is currently experiencing issues. Please try again in a few minutes.'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -194,6 +209,10 @@ def submit_quiz(request, topic_id):
         user_course.completed_at = timezone.now()
     user_course.save()
     
+    # Update learning streak when user completes a topic
+    from authentication.views import update_user_learning_streak
+    update_user_learning_streak(request.user)
+    
     return Response({
         'score': score,
         'total_questions': len(questions),
@@ -204,8 +223,57 @@ def submit_quiz(request, topic_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_courses(request):
-    user_courses = UserCourse.objects.filter(user=request.user).order_by('-enrolled_at')
-    return Response(UserCourseSerializer(user_courses, many=True).data)
+    # Get only courses that the user has enrolled in
+    user_courses = UserCourse.objects.filter(
+        user=request.user
+    ).select_related('course').prefetch_related('course__topics').order_by('-enrolled_at')
+    
+    # Calculate study time for each course
+    
+    course_data = []
+    for user_course in user_courses:
+        course = user_course.course
+        
+        # Calculate study time for this course
+        course_study_time = 0
+        
+        # Get completed topics for this course
+        completed_topics = TopicProgress.objects.filter(
+            user=request.user,
+            topic__course=course,
+            completed=True
+        ).select_related('topic')
+        
+        # Calculate time from completed topics only
+        for topic_progress in completed_topics:
+            topic = topic_progress.topic
+            estimated_time = topic.estimated_time
+            if estimated_time:
+                hours = 0
+                
+                if 'hour' in estimated_time.lower():
+                    try:
+                        hours = int(estimated_time.split()[0])
+                    except (ValueError, IndexError):
+                        hours = 1
+                elif 'minute' in estimated_time.lower():
+                    try:
+                        minutes = int(estimated_time.split()[0])
+                        # Convert minutes to hours (round up if 30+ minutes)
+                        hours = round(minutes / 60)
+                    except (ValueError, IndexError):
+                        hours = 1
+                
+                # Add hours directly
+                course_study_time += hours * 60  # Convert to minutes for consistency
+        
+        # Serialize course data with study time
+        course_serialized = UserCourseSerializer(user_course).data
+        course_serialized['study_time_minutes'] = course_study_time
+        
+        course_data.append(course_serialized)
+    
+    return Response(course_data)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

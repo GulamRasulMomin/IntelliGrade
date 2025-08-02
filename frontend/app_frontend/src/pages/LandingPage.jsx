@@ -38,7 +38,7 @@ export default function LandingPage() {
             <span className="text-2xl font-bold text-white">IntelliGrade</span>
           </div>
           <div className="space-x-4">
-            <Link to="/login" className="text-gray-300 hover:text-white transition-colors">
+            <Link to="/login" className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
               Login
             </Link>
             <Link to="/signup" className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
@@ -78,7 +78,7 @@ export default function LandingPage() {
         
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {features.map((feature, index) => (
-            <div key={index} className="bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl border border-gray-700 hover:border-purple-500 transition-all duration-300 hover:transform hover:scale-105">
+            <div key={index} className="bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl border border-gray-500 hover:border-purple-200 transition-all duration-300 hover:transform hover:scale-105">
               <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center mb-6">
                 <feature.icon className="w-6 h-6 text-white" />
               </div>
@@ -90,7 +90,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="container mx-auto px-6 py-20 text-center">
+      {/* <section className="container mx-auto px-6 py-20 text-center">
         <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-3xl p-12 border border-purple-500/30">
           <h2 className="text-3xl font-bold text-white mb-6">Ready to Transform Your Learning?</h2>
           <p className="text-gray-300 mb-8 text-lg">Join thousands of learners who are already using AI to accelerate their education.</p>
@@ -102,7 +102,7 @@ export default function LandingPage() {
             <ArrowRight className="ml-2 w-5 h-5" />
           </Link>
         </div>
-      </section>
+      </section> */}
 
       {/* Footer */}
       <footer className="container mx-auto px-6 py-8 border-t border-gray-800">

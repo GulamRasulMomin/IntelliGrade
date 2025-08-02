@@ -15,6 +15,37 @@ class ApiService {
   }
 
   /**
+   * Handles token refresh when API calls fail due to expired tokens
+   * @param {Function} apiCall - The API call function to retry
+   * @returns {Promise<any>} The API response
+   */
+  async withTokenRefresh(apiCall) {
+    try {
+      return await apiCall();
+    } catch (error) {
+      if (error.message && error.message.includes('401')) {
+        // Token expired, try to refresh
+        try {
+          const refreshResponse = await this.refreshToken();
+          if (refreshResponse.access) {
+            localStorage.setItem('authToken', refreshResponse.access);
+            // Retry the original API call
+            return await apiCall();
+          }
+        } catch (refreshError) {
+          // Refresh failed, redirect to login
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('userData');
+          window.location.href = '/login';
+          throw refreshError;
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Handles the response from the API.
    * @param {Response} response The fetch response object.
    * @returns {Promise<any>} The response JSON data.
@@ -22,7 +53,10 @@ class ApiService {
   async handleResponse(response) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Create a more detailed error with field-specific errors
+      const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      error.fieldErrors = errorData;
+      throw error;
     }
     return response.json();
   }
@@ -31,7 +65,7 @@ class ApiService {
   /**
    * Registers a new user.
    * @param {object} userData - The user's registration data.
-   * @param {string} userData.name - The user's full name.
+   * @param {string} userData.username - The user's username.
    * @param {string} userData.email - The user's email address.
    * @param {string} userData.password - The user's password.
    * @returns {Promise<any>} The registration response.
@@ -41,10 +75,8 @@ class ApiService {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        first_name: userData.name.split(' ')[0],
-        last_name: userData.name.split(' ').slice(1).join(' ') || '',
+        username: userData.username,
         email: userData.email,
-        username: userData.email,
         password: userData.password,
         password_confirm: userData.password
       })
@@ -54,15 +86,15 @@ class ApiService {
 
   /**
    * Logs in a user.
-   * @param {string} email - The user's email.
+   * @param {string} username - The user's username.
    * @param {string} password - The user's password.
    * @returns {Promise<any>} The login response.
    */
-  async login(email, password) {
+  async login(username, password) {
     const response = await fetch(`${API_BASE_URL}/auth/login/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ username, password })
     });
     return this.handleResponse(response);
   }
@@ -91,15 +123,66 @@ class ApiService {
   }
 
   async getUserProfile() {
-    const response = await fetch(`${API_BASE_URL}/auth/profile/`, {
-      headers: this.getAuthHeaders()
+    return this.withTokenRefresh(async () => {
+      const response = await fetch(`${API_BASE_URL}/auth/profile/`, {
+        headers: this.getAuthHeaders()
+      });
+      return this.handleResponse(response);
     });
-    return this.handleResponse(response);
   }
 
   async getUserStats() {
     const response = await fetch(`${API_BASE_URL}/auth/stats/`, {
       headers: this.getAuthHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  /**
+   * Updates user profile (username, email, avatar)
+   * @param {object} profileData - The profile data to update
+   * @param {string} [profileData.username] - New username
+   * @param {string} [profileData.email] - New email
+   * @param {File} [profileData.avatar] - New avatar file
+   * @returns {Promise<any>} The update response
+   */
+  async updateProfile(profileData) {
+    const formData = new FormData();
+    
+    // Add text fields
+    if (profileData.username) formData.append('username', profileData.username);
+    if (profileData.email) formData.append('email', profileData.email);
+    if (profileData.avatar) formData.append('avatar', profileData.avatar);
+    
+    const token = localStorage.getItem('authToken');
+    const headers = {
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+    
+    const response = await fetch(`${API_BASE_URL}/auth/profile/update/`, {
+      method: 'PUT',
+      headers,
+      body: formData
+    });
+    return this.handleResponse(response);
+  }
+
+  /**
+   * Changes user password
+   * @param {string} oldPassword - Current password
+   * @param {string} newPassword - New password
+   * @param {string} confirmPassword - Password confirmation
+   * @returns {Promise<any>} The password change response
+   */
+  async changePassword(oldPassword, newPassword, confirmPassword) {
+    const response = await fetch(`${API_BASE_URL}/auth/profile/change-password/`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({
+        old_password: oldPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword
+      })
     });
     return this.handleResponse(response);
   }
@@ -111,14 +194,14 @@ class ApiService {
    * @param {string} [difficulty='beginner'] - The difficulty level.
    * @returns {Promise<any>} The generated course data.
    */
-  async generateCourse(courseName, difficulty = 'beginner') {
+  async generateCourse(courseName, difficulty = 'beginner', duration_weeks = 4) {
     const response = await fetch(`${API_BASE_URL}/courses/generate/`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({
         course_name: courseName,
         difficulty: difficulty,
-        duration_weeks: 4
+        duration_weeks: duration_weeks
       })
     });
     return this.handleResponse(response);

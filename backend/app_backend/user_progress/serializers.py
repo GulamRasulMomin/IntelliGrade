@@ -1,10 +1,5 @@
 from rest_framework import serializers
-from .models import LearningGoal, StudySession, Achievement
-
-class LearningGoalSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LearningGoal
-        fields = ['id', 'title', 'description', 'target_date', 'completed', 'created_at']
+from .models import StudySession, Achievement
 
 class StudySessionSerializer(serializers.ModelSerializer):
     course_title = serializers.CharField(source='course.title', read_only=True)

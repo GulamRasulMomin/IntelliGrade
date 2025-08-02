@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Eye, EyeOff, Sparkles, ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -19,11 +19,11 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const success = await login(email, password);
+      const success = await login(username, password);
       if (success) {
         navigate('/home');
       } else {
-        setError('Invalid email or password');
+        setError('Invalid username or password');
       }
     } catch (err) {
       setError('Login failed. Please try again.');
@@ -54,13 +54,6 @@ export default function LoginPage() {
           <p className="text-gray-400">Sign in to continue your learning journey</p>
         </div>
 
-        {/* Demo Credentials */}
-        <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 mb-6">
-          <p className="text-blue-300 text-sm font-medium mb-2">Demo Credentials:</p>
-          <p className="text-blue-200 text-sm">Email: demo@intelligrade.com</p>
-          <p className="text-blue-200 text-sm">Password: demo123</p>
-        </div>
-
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl border border-gray-700">
           {error && (
@@ -71,16 +64,16 @@ export default function LoginPage() {
 
           <div className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address
+              <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+                Username
               </label>
               <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                placeholder="Enter your email"
+                placeholder="Enter your username"
                 required
               />
             </div>

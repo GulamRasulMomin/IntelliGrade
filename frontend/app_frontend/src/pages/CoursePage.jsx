@@ -35,6 +35,13 @@ export default function CoursePage() {
         };
 
         setCourseData(transformedData);
+        
+        // Log study session when user views course
+        try {
+          await apiService.logStudySession(courseId, null, 5); // 5 minutes for viewing course
+        } catch (error) {
+          console.log('Could not log study session:', error);
+        }
       } catch (error) {
         console.error('Error loading course:', error);
         // Fallback to mock data
@@ -122,9 +129,9 @@ export default function CoursePage() {
     <div className="min-h-screen bg-gray-900 px-6 py-8">
       {/* Header */}
       <div className="mb-8">
-        <Link to="/home" className="inline-flex items-center text-gray-300 hover:text-white mb-6 transition-colors">
+        <Link to="/my-courses" className="inline-flex items-center text-gray-300 hover:text-white mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Home
+          Back to Courses
         </Link>
         
         <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-8 border border-purple-500/30 mb-8">
@@ -202,14 +209,6 @@ export default function CoursePage() {
         </div>
       </div>
 
-      {/* Progress Summary */}
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-        <h3 className="text-lg font-semibold text-white mb-4">Course Progress</h3>
-        <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
-          <div className="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full" style={{ width: '0%' }}></div>
-        </div>
-        <p className="text-gray-400 text-sm">0% Complete • 0 of {courseData.topics.length} topics finished</p>
-      </div>
     </div>
   );
 }
