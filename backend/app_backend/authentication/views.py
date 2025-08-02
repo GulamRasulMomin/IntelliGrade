@@ -106,10 +106,7 @@ def update_profile(request):
     )
     
     if serializer.is_valid():
-        if 'avatar' in request.FILES:
-            if request.user.avatar and request.user.avatar.name != 'avatars/default_avatar.png':
-                request.user.delete_avatar()
-            
+        if 'avatar' in request.FILES:            
             request.user.avatar = request.FILES['avatar']
             request.user.save()
         
@@ -121,20 +118,6 @@ def update_profile(request):
         }, status=status.HTTP_200_OK)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
-def delete_avatar(request):
-    try:
-        request.user.delete_avatar()
-        return Response({
-            'message': 'Avatar deleted successfully',
-            'user': UserSerializer(request.user).data
-        }, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response({
-            'error': 'Failed to delete avatar'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
