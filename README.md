@@ -5,5 +5,3 @@ IntelliGrade is a full-stack application for intelligent course management and l
 - A React frontend for user interaction
 
 ---
-
-## Project Structure

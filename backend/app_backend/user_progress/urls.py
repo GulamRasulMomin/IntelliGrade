@@ -1,8 +1,12 @@
 from django.urls import path
-from . import views
+from .views import (
+    StudyAnalyticsAPIView,
+    UserAchievementsAPIView,
+    LogStudySessionAPIView,
+)
 
 urlpatterns = [
-    path('analytics/', views.study_analytics, name='study_analytics'),
-    path('achievements/', views.user_achievements, name='user_achievements'),
-    path('log-session/', views.log_study_session, name='log_study_session'),
+    path('analytics/', StudyAnalyticsAPIView.as_view(), name='study_analytics'),
+    path('achievements/', UserAchievementsAPIView.as_view(), name='user_achievements'),
+    path('log-session/', LogStudySessionAPIView.as_view(), name='log_study_session'),
 ]

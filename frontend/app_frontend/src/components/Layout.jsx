@@ -28,7 +28,7 @@ export default function Layout({ children }) {
                 to={path}
                 className={`flex flex-col items-center py-2 px-4 rounded-lg transition-all duration-200 ${
                   isActive 
-                    ? 'text-purple-400 bg-purple-400/10' 
+                    ? 'text-purple-400 bg-gray-700 hover:text-white hover:bg-gray-700' 
                     : 'text-gray-400 hover:text-white hover:bg-gray-700'
                 }`}
               >

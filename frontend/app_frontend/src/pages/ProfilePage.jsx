@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 export default function ProfilePage() {
   const { user, logout, updateProfile, changePassword } = useAuth();
   const navigate = useNavigate();
@@ -154,7 +156,7 @@ export default function ProfilePage() {
   // Display avatar preview
   const avatarPreview = editData.avatar 
     ? URL.createObjectURL(editData.avatar)
-    : user?.avatar || 'http://localhost:8000/media/avatars/default_avatar.png';
+    : user?.avatar || BACKEND_URL + '/media/avatars/default_avatar.png';
 
   return (
     <div className="min-h-screen bg-gray-900 px-6 py-8">

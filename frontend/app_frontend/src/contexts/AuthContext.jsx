@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiService } from '../services/api';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const AuthContext = createContext(undefined);
 
@@ -20,7 +21,7 @@ export function AuthProvider({ children }) {
           const parsedUserData = JSON.parse(userData);
           
           if (parsedUserData.avatar && !parsedUserData.avatar.startsWith('http')) {
-            parsedUserData.avatar = `http://localhost:8000${parsedUserData.avatar}`;
+            parsedUserData.avatar = BACKEND_URL + parsedUserData.avatar;
           }
           
           setUser(parsedUserData);
@@ -58,7 +59,7 @@ export function AuthProvider({ children }) {
           id: response.user.id.toString(),
           username: response.user.username,
           email: response.user.email,
-          avatar: response.user.avatar ? `http://localhost:8000${response.user.avatar}` : undefined,
+          avatar: response.user.avatar ? BACKEND_URL + response.user.avatar : undefined,
           joinDate: response.user.date_joined
         };
 
@@ -86,7 +87,7 @@ export function AuthProvider({ children }) {
           id: response.user.id.toString(),
           username: response.user.username,
           email: response.user.email,
-          avatar: response.user.avatar ? `http://localhost:8000${response.user.avatar}` : undefined,
+          avatar: response.user.avatar ? BACKEND_URL + response.user.avatar : undefined,
           joinDate: response.user.date_joined
         };
 
@@ -180,7 +181,7 @@ export function AuthProvider({ children }) {
           id: response.user.id.toString(),
           username: response.user.username,
           email: response.user.email,
-          avatar: response.user.avatar ? `http://localhost:8000${response.user.avatar}` : undefined,
+          avatar: response.user.avatar ? BACKEND_URL + response.user.avatar : undefined,
           joinDate: response.user.date_joined
         };
 
