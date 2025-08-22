@@ -18,7 +18,7 @@ class Course(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return self.title
+        return self.title + " - " + self.difficulty + " - " + self.estimated_duration
 
 class Topic(models.Model):
     course = models.ForeignKey(Course, related_name='topics', on_delete=models.CASCADE)
@@ -40,7 +40,7 @@ class Quiz(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"Quiz for {self.topic.title}"
+        return f"Quiz for {self.topic.course.title} - {self.topic.title}"
 
 class UserCourse(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -68,7 +68,7 @@ class TopicProgress(models.Model):
         unique_together = ['user', 'topic']
     
     def __str__(self):
-        return f"{self.user.username} - {self.topic.title}"
+        return f"{self.user.username} - {self.topic.course.title} -{self.topic.title}"
 
 class QuizAttempt(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -79,4 +79,4 @@ class QuizAttempt(models.Model):
     completed_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"{self.user.username} - {self.quiz.topic.title} - {self.score}/{self.total_questions}"
+        return f"{self.user.username} - {self.quiz.topic.course.title} - {self.quiz.topic.title} - {self.score}/{self.total_questions}"

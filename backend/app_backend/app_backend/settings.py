@@ -160,7 +160,7 @@ SIMPLE_JWT = {
 ALLOWED_HOSTS = []
 
 # CORS settings
-CORS_ALLOWED_ORIGINS=['http://localhost:5173']
+CORS_ALLOWED_ORIGINS=['http://localhost:5173', 'https://8n439ftk-5173.inc1.devtunnels.ms']
 
 CORS_ALLOW_CREDENTIALS = True
 

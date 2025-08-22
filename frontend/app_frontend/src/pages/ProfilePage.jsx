@@ -4,7 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const BACKEND_URL =(import.meta.env.VITE_BACKEND_URL ||
+   "http://127.0.0.1:8000");
+
 
 export default function ProfilePage() {
   const { user, logout, updateProfile, changePassword } = useAuth();
@@ -20,7 +22,7 @@ export default function ProfilePage() {
   
   const [stats, setStats] = useState({
     totalCourses: 0,
-    completedCourses: 0,
+    achievements: "-",
     totalQuizzes: 0,
     learningStreak: 1
   });
@@ -41,9 +43,10 @@ export default function ProfilePage() {
     const loadStats = async () => {
       try {
         const statsData = await apiService.getUserStats();
+        const userAchievements = await apiService.getUserAchievements();
         setStats({
           totalCourses: statsData.total_courses || 0,
-          completedCourses: statsData.completed_courses || 0,
+          achievements: userAchievements[0].achievement_type || "-",
           totalQuizzes: statsData.total_quizzes || 0,
           learningStreak: statsData.learning_streak || 1
         });
@@ -147,7 +150,7 @@ export default function ProfilePage() {
   }) : 'Unknown';
 
   const statsDisplay = [
-    { label: 'Courses Completed', value: stats.completedCourses.toString(), color: 'text-green-400' },
+    { label: 'User Achievements', value: stats.achievements, color: 'text-green-400' },
     { label: 'Total Quizzes', value: stats.totalQuizzes.toString(), color: 'text-blue-400' },
     { label: 'Study Streak', value: `${stats.learningStreak} day${stats.learningStreak !== 1 ? 's' : ''}`, color: 'text-purple-400' },
     { label: 'Total Courses', value: stats.totalCourses.toString(), color: 'text-yellow-400' }

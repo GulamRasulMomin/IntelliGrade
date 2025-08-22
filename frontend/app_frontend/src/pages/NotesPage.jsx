@@ -168,29 +168,73 @@ After mastering this topic, you'll be ready to:
         <div className="prose prose-invert prose-purple max-w-none">
           <div className="whitespace-pre-wrap text-gray-300 leading-relaxed">
             {notes.split('\n').map((line, index) => {
-              if (line.startsWith('# ')) {
-                return <h1 key={index} className="text-3xl font-bold text-white mb-6 mt-8 first:mt-0">{line.substring(2)}</h1>;
-              } else if (line.startsWith('## ')) {
-                return <h2 key={index} className="text-2xl font-semibold text-purple-300 mb-4 mt-8">{line.substring(3)}</h2>;
-              } else if (line.startsWith('### ')) {
-                return <h3 key={index} className="text-xl font-semibold text-blue-300 mb-3 mt-6">{line.substring(4)}</h3>;
-              } else if (line.startsWith('- **')) {
-                const match = line.match(/- \*\*(.*?)\*\*: (.*)/);
-                if (match) {
-                  return (
-                    <div key={index} className="mb-2">
-                      <span className="text-purple-400 font-semibold">• {match[1]}:</span>{' '}
-                      <span className="text-gray-300">{match[2]}</span>
-                    </div>
-                  );
-                }
-              } else if (line.startsWith('```')) {
-                return <div key={index} className="bg-gray-900 p-4 rounded-lg my-4 font-mono text-sm text-green-300 border border-gray-600">{line}</div>;
-              } else if (line.trim() === '') {
-                return <br key={index} />;
+            // Heading 1
+            if (line.startsWith('# ')) {
+              return (
+                <h1 key={index} className="text-3xl font-bold text-white mb-6 mt-8 first:mt-0">
+                  {line.substring(2)}
+                </h1>
+              );
+            } 
+            // Heading 2
+            else if (line.startsWith('## ')) {
+              return (
+                <h2 key={index} className="text-2xl font-semibold text-purple-300 mb-4 mt-8">
+                  {line.substring(3)}
+                </h2>
+              );
+            } 
+            // Heading 3
+            else if (line.startsWith('### ')) {
+              return (
+                <h3 key={index} className="text-xl font-semibold text-blue-300 mb-3 mt-6">
+                  {line.substring(4)}
+                </h3>
+              );
+            } 
+            // Bullet with bold key
+            else if (line.startsWith('- **')) {
+              const match = line.match(/- \*\*(.*?)\*\*: (.*)/);
+              if (match) {
+                return (
+                  <div key={index} className="mb-2">
+                    <span className="text-purple-400 font-semibold">• {match[1]}:</span>{' '}
+                    <span className="text-gray-300">{match[2]}</span>
+                  </div>
+                );
               }
-              return <p key={index} className="mb-3 text-gray-300 leading-relaxed">{line}</p>;
-            })}
+            } 
+            // Code block
+            else if (line.startsWith('```')) {
+              return (
+                <div
+                  key={index}
+                  className="bg-gray-900 p-4 rounded-lg my-4 font-mono text-sm text-green-300 border border-gray-600"
+                >
+                  {line}
+                </div>
+              );
+            } 
+            // Bold text anywhere in line (**something**)
+            else {
+              // Replace **bold** with <strong>
+              const parts = line.split(/(\*\*.*?\*\*)/g);
+              return (
+                <p key={index} className="mb-3 text-gray-300 leading-relaxed">
+                  {parts.map((part, i) => {
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                      return (
+                        <strong key={i} className="text-white font-semibold">
+                          {part.slice(2, -2)}
+                        </strong>
+                      );
+                    }
+                    return part;
+                  })}
+                </p>
+              );
+            }
+          })}
           </div>
         </div>
       </div>

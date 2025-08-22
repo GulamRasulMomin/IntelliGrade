@@ -32,18 +32,16 @@ export default function LandingPage() {
       <header className="container mx-auto px-6 py-8">
         <nav className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
+            <img src="/logo.png" alt="IntelliGrade Logo" className="w-10 h-10 rounded-full" />
             <span className="text-2xl font-bold text-white">IntelliGrade</span>
           </div>
           <div className="space-x-4">
             <Link to="/login" className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
               Login
             </Link>
-            <Link to="/signup" className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
+            {/* <Link to="/signup" className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
               Sign Up
-            </Link>
+            </Link> */}
           </div>
         </nav>
       </header>

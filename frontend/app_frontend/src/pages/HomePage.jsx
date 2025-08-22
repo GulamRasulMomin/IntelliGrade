@@ -14,10 +14,10 @@ export default function HomePage() {
   const { user } = useAuth();
 
   const suggestedCourses = [
-    { id: 'javascript', name: 'JavaScript Fundamentals', difficulty: 'Beginner', duration: '4 weeks' },
-    { id: 'web-development', name: 'Web Development', difficulty: 'Intermediate', duration: '5 weeks' },
-    { id: 'data-analysis', name: 'Data Analysis', difficulty: 'Intermediate', duration: '6 weeks' },
-    { id: 'api-design', name: 'API Design', difficulty: 'Advanced', duration: '4 weeks' }
+    { id: 'javascript', name: 'JavaScript Fundamentals', difficulty: 'beginner', duration: '4' },
+    { id: 'web-development', name: 'Web Development', difficulty: 'intermediate', duration: '5' },
+    { id: 'data-analysis', name: 'Data Analysis', difficulty: 'intermediate', duration: '6' },
+    { id: 'api-design', name: 'API Design', difficulty: 'advanced', duration: '4' }
   ];
 
   const handleSearch = async (e) => {
@@ -29,6 +29,7 @@ export default function HomePage() {
     
     try {
       const response = await apiService.generateCourse(searchQuery, difficulty, durationWeeks);
+      console.log('Course generation response:', response);
       if (response.course) {
         // Show notification based on response
         if (response.warning) {
@@ -63,12 +64,23 @@ export default function HomePage() {
     }
   };
 
-  const handleRecommendedCourse = async (courseName) => {
+  const handleRecommendedCourse = async (courseName, courseDifficulty, courseDurationWeeks) => {
+
+    if (!courseName.trim()) return;
+
     setIsLoading(true);
     setNotification(null);
+
+    setSearchQuery(courseName); 
+    setDifficulty(courseDifficulty); 
+    setDurationWeeks(courseDurationWeeks); 
+
+    console.log(courseName, courseDifficulty, courseDurationWeeks);
+    console.log(searchQuery, difficulty, durationWeeks);
     
     try {
-      const response = await apiService.generateCourse(courseName, difficulty, durationWeeks);
+      const response = await apiService.generateCourse(courseName, courseDifficulty, courseDurationWeeks);
+      console.log('Course generation response:', response);
       if (response.course) {
         // Show notification based on response
         if (response.warning) {
@@ -229,12 +241,12 @@ export default function HomePage() {
                 </span>
                 <div className="flex items-center">
                   <Clock className="w-4 h-4 mr-1" />
-                  {course.duration}
+                  {course.duration} weeks
                 </div>
               </div>
               
               <button
-                onClick={() => {handleRecommendedCourse(course.name); setSearchQuery(course.name); setDifficulty(course.difficulty); setDurationWeeks(course.duration);}}
+                onClick={() => {handleRecommendedCourse(course.name, course.difficulty, course.duration);}}
                 disabled={isLoading}
                 className="inline-flex items-center text-blue-400 hover:text-blue-300 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
