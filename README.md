@@ -1,11 +1,5 @@
 # IntelliGrade – An AI-Powered Personalized Learning Platform
 
-![React](https://img.shields.io/badge/Frontend-React.js-61DAFB?logo=react&logoColor=white)
-![Django](https://img.shields.io/badge/Backend-Django-092E20?logo=django&logoColor=white)
-![SQLite](https://img.shields.io/badge/Database-SQLite3-003B57?logo=sqlite&logoColor=white)
-![Gemini](https://img.shields.io/badge/AI-Gemini%20API-4285F4?logo=google&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Status](https://img.shields.io/badge/Status-In%20Progress-orange)
 
 ---
 
@@ -18,8 +12,8 @@ This project integrates **AI with modern full-stack development** to provide a s
 ---
 
 ## 🛠️ Tech Stack
-- **Frontend:** [React.js](https://reactjs.org/) – Responsive, dynamic, and interactive UI  
-- **Backend:** [Django](https://www.djangoproject.com/) – Secure and scalable backend framework  
+- **Frontend:** React.js – Responsive, dynamic, and interactive UI  
+- **Backend:** Django – Secure and scalable backend framework  
 - **Database:** SQLite3 – Lightweight and efficient storage solution  
 - **AI Integration:** Gemini API – AI-driven course and content generation  
 
