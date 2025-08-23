@@ -1,94 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useLocation, Link } from 'react-router-dom';
-import { ArrowLeft, Download, BookOpen, Clock } from 'lucide-react';
-import { apiService } from '../services/api';
+import React, { useState, useEffect } from "react";
+import { useParams, useLocation, Link } from "react-router-dom";
+import { ArrowLeft, Download, BookOpen, Clock } from "lucide-react";
+import { motion } from "framer-motion";
+import { apiService } from "../services/api";
 
 export default function NotesPage() {
   const { courseId, topicId } = useParams();
   const location = useLocation();
   const { topicTitle, courseTitle } = location.state || {};
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const generateNotes = async () => {
       setIsLoading(true);
-      
       try {
-        // Removed non-null assertion (!) from topicId
         const response = await apiService.getTopicNotes(topicId);
-        setNotes(response.notes || '');
-        
-        // Removed non-null assertions (!) from courseId and topicId
+        setNotes(response.notes || "");
         await apiService.logStudySession(courseId, topicId, 15);
       } catch (error) {
-        console.error('Error loading notes:', error);
-        // Fallback to mock notes
-        const mockNotes = `
-# ${topicTitle}
-
-## Overview
-This topic covers the essential concepts and practical applications of ${topicTitle}. You'll learn the fundamental principles, best practices, and real-world implementations.
-
-## Key Concepts
-
-### 1. Fundamental Principles
-- **Core Concept 1**: Understanding the basic foundations and why they matter
-- **Core Concept 2**: Building blocks that form the foundation of this topic
-- **Core Concept 3**: Essential patterns and approaches used in practice
-
-### 2. Practical Applications
-- **Use Case 1**: Real-world scenario where this knowledge is applied
-- **Use Case 2**: Common implementation patterns and techniques
-- **Use Case 3**: Advanced applications and optimizations
-
-### 3. Best Practices
-- **Practice 1**: Industry-standard approaches that ensure quality
-- **Practice 2**: Common pitfalls to avoid and how to prevent them
-- **Practice 3**: Performance considerations and optimization techniques
-
-## Implementation Examples
-
-### Basic Example
-\`\`\`
-// Example code demonstrating basic implementation
-function basicExample() {
-  // This shows how to implement the core concept
-  return "Basic implementation example";
-}
-\`\`\`
-
-### Advanced Example
-\`\`\`
-// More complex example showing advanced usage
-function advancedExample(parameters) {
-  // Advanced implementation with error handling
-  try {
-    // Complex logic here
-    return processAdvancedLogic(parameters);
-  } catch (error) {
-    console.error("Error in advanced example:", error);
-  }
-}
-\`\`\`
-
-## Key Takeaways
-1. **Main Point 1**: The most important concept to remember
-2. **Main Point 2**: Critical implementation detail
-3. **Main Point 3**: Best practice that applies universally
-
-## Next Steps
-After mastering this topic, you'll be ready to:
-- Apply these concepts in real projects
-- Move on to more advanced topics
-- Combine this knowledge with other skills
-
-## Additional Resources
-- Official documentation and guides
-- Community tutorials and examples
-- Practice exercises and challenges
-      `;
-        setNotes(mockNotes.trim());
+        console.error("Error loading notes:", error);
+        setNotes(`# ${topicTitle}\n\n_Fallback sample notes..._`);
       } finally {
         setIsLoading(false);
       }
@@ -98,47 +30,140 @@ After mastering this topic, you'll be ready to:
   }, [topicId, topicTitle, courseId]);
 
   const handleDownload = () => {
-    const element = document.createElement('a');
-    const file = new Blob([notes], { type: 'text/plain' });
+    const element = document.createElement("a");
+    const file = new Blob([notes], { type: "text/plain" });
     element.href = URL.createObjectURL(file);
-    element.download = `${topicTitle?.replace(/\s+/g, '_')}_notes.txt`;
+    element.download = `${topicTitle?.replace(/\s+/g, "_")}_notes.txt`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
   };
 
+  // Markdown-ish rendering with code block handling
+  const renderNotes = () => {
+    const lines = notes.split("\n");
+    const content = [];
+    let codeBlock = null;
+
+    lines.forEach((line, index) => {
+      if (line.startsWith("```")) {
+        if (codeBlock) {
+          // close block
+          content.push(
+            <pre
+              key={index}
+              className="bg-gray-900 p-4 rounded-lg my-4 font-mono text-sm text-green-300 border border-gray-600 overflow-x-auto"
+            >
+              <code>{codeBlock.join("\n")}</code>
+            </pre>
+          );
+          codeBlock = null;
+        } else {
+          codeBlock = [];
+        }
+      } else if (codeBlock) {
+        codeBlock.push(line);
+      } else if (line.startsWith("# ")) {
+        content.push(
+          <h1
+            key={index}
+            className="text-3xl font-bold text-white mb-6 mt-8 first:mt-0"
+          >
+            {line.substring(2)}
+          </h1>
+        );
+      } else if (line.startsWith("## ")) {
+        content.push(
+          <h2
+            key={index}
+            className="text-2xl font-semibold text-purple-300 mb-4 mt-8"
+          >
+            {line.substring(3)}
+          </h2>
+        );
+      } else if (line.startsWith("### ")) {
+        content.push(
+          <h3
+            key={index}
+            className="text-xl font-semibold text-blue-300 mb-3 mt-6"
+          >
+            {line.substring(4)}
+          </h3>
+        );
+      } else if (line.startsWith("- **")) {
+        const match = line.match(/- \*\*(.*?)\*\*: (.*)/);
+        if (match) {
+          content.push(
+            <div key={index} className="mb-2">
+              <span className="text-purple-400 font-semibold">
+                • {match[1]}:
+              </span>{" "}
+              <span className="text-gray-300">{match[2]}</span>
+            </div>
+          );
+        }
+      } else {
+        const parts = line.split(/(\*\*.*?\*\*)/g);
+        content.push(
+          <p key={index} className="mb-3 text-gray-300 leading-relaxed">
+            {parts.map((part, i) =>
+              part.startsWith("**") && part.endsWith("**") ? (
+                <strong key={i} className="text-white font-semibold">
+                  {part.slice(2, -2)}
+                </strong>
+              ) : (
+                part
+              )
+            )}
+          </p>
+        );
+      }
+    });
+
+    return content;
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 px-6 py-8">
-        <Link to={`/course/${courseId}`} className="inline-flex items-center text-gray-300 hover:text-white mb-8 transition-colors">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Course
-        </Link>
-        
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <h2 className="text-2xl font-semibold text-white mb-2">Generating Notes</h2>
-          <p className="text-gray-400 text-center max-w-md">
-            AI is creating comprehensive notes for {topicTitle}...
-          </p>
-        </div>
+      <div className="min-h-screen bg-gray-900 px-6 py-8 flex flex-col items-center justify-center">
+        <motion.div
+          className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full mb-6"
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+        />
+        <h2 className="text-2xl font-semibold text-white mb-2">
+          Generating Notes
+        </h2>
+        <p className="text-gray-400 text-center max-w-md">
+          AI is creating comprehensive notes for {topicTitle}...
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 px-6 py-8">
+    <div className="min-h-screen bg-gray-900 px-4 sm:px-6 lg:px-12 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <Link to={`/course/${courseId}`} className="inline-flex items-center text-gray-300 hover:text-white mb-6 transition-colors">
+      <motion.div
+        className="mb-8"
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <Link
+          to={`/course/${courseId}`}
+          className="inline-flex items-center text-gray-300 hover:text-white mb-6 transition-colors"
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Course
         </Link>
-        
-        <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/30 mb-8">
-          <div className="flex items-start justify-between">
+
+        <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/30">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">{topicTitle}</h1>
+              <h1 className="text-3xl font-bold text-white mb-2">
+                {topicTitle}
+              </h1>
               <p className="text-gray-300">From {courseTitle}</p>
             </div>
             <button
@@ -149,7 +174,7 @@ After mastering this topic, you'll be ready to:
               Download Notes
             </button>
           </div>
-          
+
           <div className="flex items-center space-x-4 mt-4 text-sm">
             <div className="flex items-center text-gray-300">
               <BookOpen className="w-4 h-4 mr-1" />
@@ -161,86 +186,20 @@ After mastering this topic, you'll be ready to:
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Notes Content */}
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 mb-8">
-        <div className="prose prose-invert prose-purple max-w-none">
-          <div className="whitespace-pre-wrap text-gray-300 leading-relaxed">
-            {notes.split('\n').map((line, index) => {
-            // Heading 1
-            if (line.startsWith('# ')) {
-              return (
-                <h1 key={index} className="text-3xl font-bold text-white mb-6 mt-8 first:mt-0">
-                  {line.substring(2)}
-                </h1>
-              );
-            } 
-            // Heading 2
-            else if (line.startsWith('## ')) {
-              return (
-                <h2 key={index} className="text-2xl font-semibold text-purple-300 mb-4 mt-8">
-                  {line.substring(3)}
-                </h2>
-              );
-            } 
-            // Heading 3
-            else if (line.startsWith('### ')) {
-              return (
-                <h3 key={index} className="text-xl font-semibold text-blue-300 mb-3 mt-6">
-                  {line.substring(4)}
-                </h3>
-              );
-            } 
-            // Bullet with bold key
-            else if (line.startsWith('- **')) {
-              const match = line.match(/- \*\*(.*?)\*\*: (.*)/);
-              if (match) {
-                return (
-                  <div key={index} className="mb-2">
-                    <span className="text-purple-400 font-semibold">• {match[1]}:</span>{' '}
-                    <span className="text-gray-300">{match[2]}</span>
-                  </div>
-                );
-              }
-            } 
-            // Code block
-            else if (line.startsWith('```')) {
-              return (
-                <div
-                  key={index}
-                  className="bg-gray-900 p-4 rounded-lg my-4 font-mono text-sm text-green-300 border border-gray-600"
-                >
-                  {line}
-                </div>
-              );
-            } 
-            // Bold text anywhere in line (**something**)
-            else {
-              // Replace **bold** with <strong>
-              const parts = line.split(/(\*\*.*?\*\*)/g);
-              return (
-                <p key={index} className="mb-3 text-gray-300 leading-relaxed">
-                  {parts.map((part, i) => {
-                    if (part.startsWith('**') && part.endsWith('**')) {
-                      return (
-                        <strong key={i} className="text-white font-semibold">
-                          {part.slice(2, -2)}
-                        </strong>
-                      );
-                    }
-                    return part;
-                  })}
-                </p>
-              );
-            }
-          })}
-          </div>
-        </div>
-      </div>
+      <motion.div
+        className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 mb-8"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
+        {renderNotes()}
+      </motion.div>
 
       {/* Action Buttons */}
-      <div className="flex space-x-4">
+      <div className="flex flex-col sm:flex-row gap-4">
         <Link
           to={`/course/${courseId}/quiz/${topicId}`}
           state={{ topicTitle, courseTitle }}

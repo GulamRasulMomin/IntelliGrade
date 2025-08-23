@@ -101,14 +101,14 @@ def _check_achievements(user):
     from courses.models import UserCourse, QuizAttempt
 
     if UserCourse.objects.filter(user=user, completed=True).count() == 1:
-        Achievement.objects.get_or_create(user=user, achievement_type='first_course')
+        Achievement.objects.get_or_create(user=user, achievement_type='First Course Completed')
 
     if QuizAttempt.objects.filter(user=user).count() >= 10:
-        Achievement.objects.get_or_create(user=user, achievement_type='quiz_master')
+        Achievement.objects.get_or_create(user=user, achievement_type='Quiz Master')
 
     learning_streak = update_user_learning_streak(user)
 
     if learning_streak >= 7:
-        Achievement.objects.get_or_create(user=user, achievement_type='streak_7')
+        Achievement.objects.get_or_create(user=user, achievement_type='7 Day Streak')
     if learning_streak >= 30:
-        Achievement.objects.get_or_create(user=user, achievement_type='streak_30')
+        Achievement.objects.get_or_create(user=user, achievement_type='30 Day Streak')

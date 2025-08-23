@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import { apiService } from '../services/api';
+import { motion, AnimatePresence } from 'framer-motion';
 
 /**
  * @typedef {object} Question
@@ -11,6 +12,53 @@ import { apiService } from '../services/api';
  * @property {number} correctAnswer
  * @property {string} explanation
  */
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut"
+    }
+  }
+};
+
+const optionVariants = {
+  hidden: { x: -20, opacity: 0 },
+  visible: (i) => ({
+    x: 0,
+    opacity: 1,
+    transition: {
+      delay: i * 0.1,
+      duration: 0.3
+    }
+  }),
+  selected: { 
+    scale: 1.02,
+    transition: { duration: 0.2 }
+  }
+};
+
+const progressVariants = {
+  initial: { width: 0 },
+  animate: { 
+    width: "100%",
+    transition: { duration: 0.5 }
+  }
+};
 
 export default function QuizPage() {
   const { courseId, topicId } = useParams();
@@ -29,7 +77,7 @@ export default function QuizPage() {
       
       try {
         const response = await apiService.getTopicQuiz(topicId);
-        console.log("Quiz API response:", response); // Add this line
+        console.log("Quiz API response:", response);
         const quizQuestions = response.questions.map((q) => ({
           id: q.id,
           question: q.question,
@@ -164,23 +212,43 @@ export default function QuizPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 px-6 py-8">
-        <Link to={`/course/${courseId}`} className="inline-flex items-center text-gray-300 hover:text-white mb-8 transition-colors">
+      <div className="min-h-screen bg-gray-900 px-4 md:px-6 py-6 md:py-8">
+        <Link to={`/course/${courseId}`} className="inline-flex items-center text-gray-300 hover:text-white mb-6 md:mb-8 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Course
         </Link>
         
         {isFallbackQuiz && (
-          <div className="mb-4 p-4 bg-yellow-900/60 border-l-4 border-yellow-400 text-yellow-200 rounded">
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-4 bg-yellow-900/60 border-l-4 border-yellow-400 text-yellow-200 rounded"
+          >
             ⚠️ AI-powered quiz is currently unavailable. Showing default questions.
-          </div>
+          </motion.div>
         )}
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <h2 className="text-2xl font-semibold text-white mb-2">Generating Quiz</h2>
-          <p className="text-gray-400 text-center max-w-md">
+        <div className="flex flex-col items-center justify-center py-16 md:py-20">
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 md:w-16 md:h-16 border-4 border-blue-500 border-t-transparent rounded-full mb-4"
+          ></motion.div>
+          <motion.h2 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-xl md:text-2xl font-semibold text-white mb-2"
+          >
+            Generating Quiz
+          </motion.h2>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-gray-400 text-center max-w-md"
+          >
             AI is creating personalized quiz questions for {topicTitle}...
-          </p>
+          </motion.p>
         </div>
       </div>
     );
@@ -191,47 +259,73 @@ export default function QuizPage() {
     const percentage = Math.round((score / questions.length) * 100);
     
     return (
-      <div className="min-h-screen bg-gray-900 px-6 py-8">
-        <Link to={`/course/${courseId}`} className="inline-flex items-center text-gray-300 hover:text-white mb-8 transition-colors">
+      <div className="min-h-screen bg-gray-900 px-4 md:px-6 py-6 md:py-8">
+        <Link to={`/course/${courseId}`} className="inline-flex items-center text-gray-300 hover:text-white mb-6 md:mb-8 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Course
         </Link>
         
         <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-8 border border-purple-500/30 mb-8 text-center">
-            <h1 className="text-3xl font-bold text-white mb-4">Quiz Results</h1>
-            <div className="text-6xl font-bold mb-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-purple-500/30 mb-6 md:mb-8 text-center"
+          >
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">Quiz Results</h1>
+            <motion.div 
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              className="text-5xl md:text-6xl font-bold mb-4"
+            >
               <span className={percentage >= 70 ? 'text-green-400' : percentage >= 50 ? 'text-yellow-400' : 'text-red-400'}>
                 {percentage}%
               </span>
-            </div>
-            <p className="text-xl text-gray-300 mb-6">
+            </motion.div>
+            <p className="text-lg md:text-xl text-gray-300 mb-6">
               You scored {score} out of {questions.length} questions correctly
             </p>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={resetQuiz}
-              className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+              className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 md:px-6 md:py-3 rounded-lg font-semibold transition-colors"
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Retake Quiz
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
-          <div className="space-y-6">
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-4 md:space-y-6"
+          >
             {questions.map((question, index) => {
               const userAnswer = selectedAnswers[index];
               const isCorrect = userAnswer === question.correctAnswer;
               
               return (
-                <div key={question.id} className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+                <motion.div 
+                  key={question.id}
+                  variants={itemVariants}
+                  className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-gray-700"
+                >
                   <div className="flex items-start space-x-3 mb-4">
-                    {isCorrect ? (
-                      <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0 mt-1" />
-                    ) : (
-                      <XCircle className="w-6 h-6 text-red-400 flex-shrink-0 mt-1" />
-                    )}
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      {isCorrect ? (
+                        <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-400 flex-shrink-0 mt-1" />
+                      ) : (
+                        <XCircle className="w-5 h-5 md:w-6 md:h-6 text-red-400 flex-shrink-0 mt-1" />
+                      )}
+                    </motion.div>
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-white mb-3">
+                      <h3 className="text-base md:text-lg font-semibold text-white mb-3">
                         Question {index + 1}: {question.question}
                       </h3>
                       
@@ -248,31 +342,39 @@ export default function QuizPage() {
                           }
                           
                           return (
-                            <div
+                            <motion.div
                               key={optionIndex}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: (index * 0.2) + (optionIndex * 0.1) }}
                               className={`p-3 rounded-lg border ${bgColor} ${
                                 isCorrectAnswer ? 'border-green-500' : 
                                 isUserAnswer && !isCorrect ? 'border-red-500' : 'border-gray-600'
                               }`}
                             >
-                              <span className="text-white">{option}</span>
-                              {isCorrectAnswer && <span className="text-green-400 ml-2">✓ Correct</span>}
-                              {isUserAnswer && !isCorrect && <span className="text-red-400 ml-2">✗ Your answer</span>}
-                            </div>
+                              <span className="text-white text-sm md:text-base">{option}</span>
+                              {isCorrectAnswer && <span className="text-green-400 ml-2 text-sm">✓ Correct</span>}
+                              {isUserAnswer && !isCorrect && <span className="text-red-400 ml-2 text-sm">✗ Your answer</span>}
+                            </motion.div>
                           );
                         })}
                       </div>
                       
-                      <div className="bg-blue-600/20 border border-blue-500/30 rounded-lg p-4">
-                        <p className="text-blue-300 font-semibold mb-1">Explanation:</p>
-                        <p className="text-blue-200">{question.explanation}</p>
-                      </div>
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: (index * 0.2) + 0.4 }}
+                        className="bg-blue-600/20 border border-blue-500/30 rounded-lg p-3 md:p-4"
+                      >
+                        <p className="text-blue-300 font-semibold mb-1 text-sm md:text-base">Explanation:</p>
+                        <p className="text-blue-200 text-sm md:text-base">{question.explanation}</p>
+                      </motion.div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         </div>
       </div>
     );
@@ -282,79 +384,106 @@ export default function QuizPage() {
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gray-900 px-6 py-8">
+    <div className="min-h-screen bg-gray-900 px-4 md:px-6 py-6 md:py-8">
       {/* Header */}
-      <div className="mb-8">
-        <Link to={`/course/${courseId}`} className="inline-flex items-center text-gray-300 hover:text-white mb-6 transition-colors">
+      <div className="mb-6 md:mb-8">
+        <Link to={`/course/${courseId}`} className="inline-flex items-center text-gray-300 hover:text-white mb-4 md:mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Course
         </Link>
         
-        <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/30">
-          <h1 className="text-2xl font-bold text-white mb-2">Quiz: {topicTitle}</h1>
-          <p className="text-gray-300 mb-4">From {courseTitle}</p>
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-purple-500/30"
+        >
+          <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Quiz: {topicTitle}</h1>
+          <p className="text-gray-300 mb-3 md:mb-4 text-sm md:text-base">From {courseTitle}</p>
           
           {isFallbackQuiz && (
-            <div className="mb-4 p-4 bg-yellow-900/60 border-l-4 border-yellow-400 text-yellow-200 rounded">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="mb-3 md:mb-4 p-3 md:p-4 bg-yellow-900/60 border-l-4 border-yellow-400 text-yellow-200 rounded text-sm"
+            >
               ⚠️ AI-powered quiz is currently unavailable. Showing default questions.
-            </div>
+            </motion.div>
           )}
-          <div className="flex items-center justify-between text-sm text-gray-300 mb-2">
+          <div className="flex items-center justify-between text-xs md:text-sm text-gray-300 mb-2">
             <span>Question {currentQuestion + 1} of {questions.length}</span>
             <span>{Math.round(progress)}% Complete</span>
           </div>
-          <div className="w-full bg-gray-700 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            ></div>
+          <div className="w-full bg-gray-700 rounded-full h-1.5 md:h-2">
+            <motion.div 
+              className="bg-gradient-to-r from-purple-500 to-blue-500 h-1.5 md:h-2 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            ></motion.div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Question */}
       {question && (
         <div className="max-w-4xl mx-auto">
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 mb-8">
-            <h2 className="text-2xl font-semibold text-white mb-8">{question.question}</h2>
+          <motion.div 
+            key={currentQuestion}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-5 md:p-8 border border-gray-700 mb-6 md:mb-8"
+          >
+            <h2 className="text-lg md:text-2xl font-semibold text-white mb-6 md:mb-8">{question.question}</h2>
             
-            <div className="space-y-4 mb-8">
+            <div className="space-y-3 md:space-y-4 mb-6 md:mb-8">
               {question.options.map((option, index) => (
-                <button
+                <motion.button
                   key={index}
+                  variants={optionVariants}
+                  initial="hidden"
+                  animate="visible"
+                  custom={index}
+                  whileHover="selected"
                   onClick={() => handleAnswerSelect(index)}
-                  className={`w-full p-4 text-left rounded-lg border transition-all duration-200 ${
+                  className={`w-full p-3 md:p-4 text-left rounded-lg border transition-all duration-200 ${
                     selectedAnswers[currentQuestion] === index
                       ? 'bg-purple-600/30 border-purple-500 text-white'
                       : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:border-gray-500'
                   }`}
                 >
-                  <span className="font-medium mr-3">
+                  <span className="font-medium mr-2 md:mr-3 text-sm md:text-base">
                     {String.fromCharCode(65 + index)}.
                   </span>
-                  {option}
-                </button>
+                  <span className="text-sm md:text-base">{option}</span>
+                </motion.button>
               ))}
             </div>
 
-            <div className="flex justify-between">
-              <button
+            <div className="flex flex-col-reverse md:flex-row justify-between gap-3 md:gap-0">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={handlePrevious}
                 disabled={currentQuestion === 0}
-                className="px-6 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                className="px-4 py-2 md:px-6 md:py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm md:text-base"
               >
                 Previous
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={handleNext}
                 disabled={selectedAnswers[currentQuestion] === -1}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                className="px-4 py-2 md:px-6 md:py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm md:text-base"
               >
                 {currentQuestion === questions.length - 1 ? 'Finish Quiz' : 'Next'}
-              </button>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

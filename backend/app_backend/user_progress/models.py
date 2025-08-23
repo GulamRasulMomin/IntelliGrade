@@ -15,11 +15,11 @@ class StudySession(models.Model):
 
 class Achievement(models.Model):
     ACHIEVEMENT_TYPES = [
-        ('first_course', 'First Course Completed'),
-        ('quiz_master', 'Quiz Master'),
-        ('streak_7', '7 Day Streak'),
-        ('streak_30', '30 Day Streak'),
-        ('fast_learner', 'Fast Learner'),
+        ('first course', 'First Course Completed'),
+        ('quiz master', 'Quiz Master'),
+        ('streak 7', '7 Day Streak'),
+        ('streak 30', '30 Day Streak'),
+        ('fast learner', 'Fast Learner'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -27,7 +27,7 @@ class Achievement(models.Model):
     earned_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        unique_together = ['user', 'achievement_type']
+        unique_together = ['user', 'achievement_type', 'earned_at']
     
     def __str__(self):
-        return f"{self.user.username} - {self.get_achievement_type_display()}"
+        return f"{self.user.username} - {self.get_achievement_type_display()} - {self.earned_at.date()}"
