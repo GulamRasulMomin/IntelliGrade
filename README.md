@@ -11,6 +11,12 @@ This project integrates **AI with modern full-stack development** to provide a s
 
 ---
 
+## Project Demo
+
+https://drive.google.com/file/d/1iBNK0kJnipDzlhZXv1fE6eA-63LnP8Qp/view?usp=drive_link
+
+---
+
 ## 🛠️ Tech Stack
 - **Frontend:** React.js – Responsive, dynamic, and interactive UI  
 - **Backend:** Django – Secure and scalable backend framework  
